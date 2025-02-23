@@ -71,7 +71,13 @@ async def remove(context, item_to_remove: str):
     if item_to_remove == None:
         await context.send("Please provide an item to remove.")
 
-    
+async def remove_item_from_grocery_list(context, item_to_remove: str):
+
+    # Database call
+
+    # Return and check
+
+    await context.send(f"TODO: implement this. Removing {item_to_remove}(s) from the grocery list")
 
 # Run the bot
 bot.run(BOT_TOKEN)
