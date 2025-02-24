@@ -1,4 +1,5 @@
 import discord
+import os
 from discord.ext import commands
 
 # Intents
@@ -12,9 +13,39 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # Bot token
 BOT_TOKEN = 'MTMzMzg5MzcxOTExOTYzMDM4Nw.Ghp_ZI.0DO5yKLkXji1KjRIYce-UKV_eD1C3KH-SfroUY'
 
+# Directory to save the user data
+USER_DIRECTORY: str = 'users'
+
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user}")
+
+@bot.command()
+async def register(context):
+    """
+        Registers the user into the bot using their unique Discord ID
+    """
+    user_id: int = context.author.id
+    does_user_exist: bool = check_if_user_exists(user_id)
+
+    if does_user_exist:
+        context.send("You already exist, silly!")
+        return
+    
+    register_user(context, user_id)
+    
+def check_if_user_exists(user_id: int):
+    # Check if the file path exists within the user directory
+    user_exists: bool = os.path.isfile(f"{USER_DIRECTORY}/{user_id}.csv")
+    return user_exists
+
+def register_user(context, user_id: int):
+    """Registers user into the proper directory"""
+    users_file_path: str = os.path.join(USER_DIRECTORY, f"{user_id}.csv")
+    with open(users_file_path, 'w') as file:
+        print(f"Created file for {user_id}")
+        context.send("Added you to the Budget Bot! Welcome fella!")
+    return
 
 @bot.command()
 async def add(context, item_to_add: str, amount: int = 0):
@@ -31,6 +62,10 @@ async def add(context, item_to_add: str, amount: int = 0):
 # TODO: implement this with database
 async def add_item_to_grocery_list(context, item: str, amount: int = 0):
     # Database call
+    # TODO: refactor this for PSQL call
+
+    # Check if the user already exists within the CSV
+    user: int = context.author.id
 
     # Return and check
 
