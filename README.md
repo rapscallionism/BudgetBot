@@ -5,6 +5,7 @@ Discord Bot to help me calculate my expenses for the month
 - Register the test bot for testing into the server
 - Code up the implementations of the data additions + removals
 - DB connection onto local
+    - For now, settle with CSV option
 - Stretch goal: Dockerize and figure out how to get it to run in ephemeral env.
 - Stretch goal: Shopping List Report
     - Generate a baseline/checkpoint for how much money the allocated budget will be 
