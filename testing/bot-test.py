@@ -31,5 +31,6 @@ test_cases: list[str] = [
     "Remove grocery item from list by increment 1 does not exist, should not be valid and do nothing",
 ]
 
-# Run the bot
-bot.run(BOT_TOKEN)
+if __name__ == "__main__":
+    # Run the bot
+    bot.run(BOT_TOKEN)
