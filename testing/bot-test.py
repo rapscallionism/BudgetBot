@@ -24,6 +24,8 @@ test_cases: list[str] = [
     "Add grocery item to list with amount of 1, should be valid",
     "Add grocery item to list with amount of 0, should not be valid",
     "Add grocery item to list with amount of 1 and already exists, should be valid and increment",
+    "Add grocery item multi-word with amount of 1, should be valid",
+    "Add grocery item multi-word with amount of 0, should not be valid",
     "Remove grocery item from list does exist, should be valid and remove",
     "Remove grocery item from list does not exist, should not be valid and do nothing",
     "Remove grocery item from list by increment 1 does exist, should be valid remove 1",
