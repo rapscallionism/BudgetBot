@@ -1,5 +1,6 @@
 import discord
 import os
+import csv
 from discord.ext import commands
 
 # Intents
@@ -29,18 +30,28 @@ async def list(context):
     does_user_exist: bool = check_if_user_exists(user_id)
 
     if not does_user_exist:
-        context.send("You don't exist, silly! Make sure to run '!register' to register to the bot!")
+        await context.send("You aren't registered , silly! Make sure to run '!register' to register to the bot!")
+        return
 
-    grocery_list: str = get_grocery_list(user_id)
-    context.send(grocery_list)
+    grocery_list: str = await get_grocery_list(user_id)
+    if grocery_list == "":
+        await context.send("Looks like you don't have anything in your grocery list... you can add them by using '!add <grocery item>'")
+        return
 
-async def get_grocery_list(user_id) -> str:
+async def get_grocery_list(user_id):
     # Grab the entire CSV file
+    with open(f"{USER_DIRECTORY}/{user_id}.csv", newline='', encoding='utf-8') as csv_file:
+        reader = csv.reader(csv_file)
+        rows = list(reader)
 
-    # Format into readable format; table maybe?
+    # If the rows is empty, then ignore it
+    if not rows:
+        return ""
 
-    # Return it as a string
-    return "NEEDS TO BE IMPLEMENETED"
+    return rows
+
+def format_to_markdown_table(row, column_widths):
+    return "| " + " | ".join(f"{str(cell).ljust(width)}" for cell, width in zip(row, column_widths)) + " |"
 
 @bot.command()
 async def register(context):
@@ -51,22 +62,22 @@ async def register(context):
     does_user_exist: bool = check_if_user_exists(user_id)
 
     if does_user_exist:
-        context.send("You already exist, silly!")
+        await context.send("You already exist, silly!")
         return
     
-    register_user(context, user_id)
+    await register_user(context, user_id)
     
 def check_if_user_exists(user_id: int):
     # Check if the file path exists within the user directory
     user_exists: bool = os.path.isfile(f"{USER_DIRECTORY}/{user_id}.csv")
     return user_exists
 
-def register_user(context, user_id: int):
+async def register_user(context, user_id: int):
     """Registers user into the proper directory"""
     users_file_path: str = os.path.join(USER_DIRECTORY, f"{user_id}.csv")
     with open(users_file_path, 'w') as file:
         print(f"Created file for {user_id}")
-        context.send("Added you to the Budget Bot! Welcome fella!")
+        await context.send("Added you to the Budget Bot! Welcome fella!")
     return
 
 @bot.command()
@@ -83,20 +94,26 @@ async def add(context, item_to_add: str, amount: int = 1):
     if amount <= 0:
         await context.send("Did you mean to send an amount of less than or equal to 0? Please try again.")
         return
+    
+    user_id: int = context.author.id
+    does_user_exist: bool = check_if_user_exists(user_id)
+    if not does_user_exist:
+        await context.send("You aren't registered , silly! Make sure to run '!register' to register to the bot!")
+        return
 
-    await add_item_to_grocery_list(context, item_to_add)
+    await add_item_to_grocery_list(context, item_to_add, user_id, amount)
 
 # TODO: implement this with database
-async def add_item_to_grocery_list(context, item: str, amount: int = 0):
+async def add_item_to_grocery_list(context, item: str, user_id, amount):
     # Database call
     # TODO: refactor this for PSQL call
 
-    # Check if the user already exists within the CSV
-    user: int = context.author.id
+    with open(f"{USER_DIRECTORY}/{user_id}.csv", 'a') as file:
+        # Append to the file
+        file.write("\n")
+        file.write(f"{item},{amount}\n")
 
-    # Return and check
-
-    await context.send(f"TODO: implement this. Adding {amount} numer of {item}(s)")
+    await context.send(f"Finished adding {amount} number of {item}(s)")
 
 # Removes the grocery item from the grocery list provided
 @bot.command()
