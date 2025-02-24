@@ -21,6 +21,28 @@ async def on_ready():
     print(f"Logged in as {bot.user}")
 
 @bot.command()
+async def list(context):
+    """
+        Lists out the grocery list for the user that currently exists
+    """
+    user_id: int = context.author.id
+    does_user_exist: bool = check_if_user_exists(user_id)
+
+    if not does_user_exist:
+        context.send("You don't exist, silly! Make sure to run '!register' to register to the bot!")
+
+    grocery_list: str = get_grocery_list(user_id)
+    context.send(grocery_list)
+
+async def get_grocery_list(user_id) -> str:
+    # Grab the entire CSV file
+
+    # Format into readable format; table maybe?
+
+    # Return it as a string
+    return "NEEDS TO BE IMPLEMENETED"
+
+@bot.command()
 async def register(context):
     """
         Registers the user into the bot using their unique Discord ID
@@ -56,6 +78,9 @@ async def add(context, item_to_add: str, amount: int = 0):
 
     if item_to_add == None:
         await context.send("Please add an item to the grocery list.")
+
+    if amount == 0:
+        await context.send("Did you mean to send an amount of 0? Please try again.")
 
     await add_item_to_grocery_list(context, item_to_add)
 
