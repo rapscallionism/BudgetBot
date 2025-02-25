@@ -174,3 +174,4 @@ cython_debug/
 # Custom
 users/
 users
+chatgpt_api_key.txt
