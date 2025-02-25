@@ -1,3 +1,4 @@
+import sys
 import discord
 import os
 import csv
@@ -50,20 +51,19 @@ async def get_grocery_list(context, user_id):
         csv_file.close()
 
     # Trim off the header
-    headers: list[str] = lines[0].replace("\r", "").replace("\n", "").split(",")
     lines = lines[1:]
 
-    formatted_message = format_to_markdown_table(headers, lines)
+    formatted_message = format_to_markdown_table(lines)
 
     await context.send(formatted_message)
 
-def format_to_markdown_table(headers: list, lines: list) -> str:
+def format_to_markdown_table(lines: list) -> str:
     """
         Format to proper markdown
     """
     formatted_string: str = "```"
     formatted_string += "# Grocery List\n"
-    
+
     for row in lines:
         # Trim off the \r\n and turn it into comma sep.
         row = row.replace("\r", "").replace("\n", "").split(",")
@@ -143,26 +143,85 @@ async def add_item_to_grocery_list(context, item: str, user_id, amount):
 
 # Removes the grocery item from the grocery list provided
 @bot.command()
-async def remove(context, item_to_remove: str, amount: int = 1):
+async def remove(context, item_to_remove: str, amount: int = sys.maxsize):
     if item_to_remove == None:
         await context.send("Please provide an item to remove.")
         return
     
-    if amount <= 0:
+    if amount <= 0 :
         await context.send("Did you mean to send an amount of less than or equal to 0? Please try again.")
         return
+    
+    user_id: int = context.author.id
+    does_user_exist: bool = check_if_user_exists(user_id)
+    if not does_user_exist:
+        await context.send("You aren't registered , silly! Make sure to run '!register' to register to the bot!")
+        return
 
-    remove_item_from_grocery_list(context, item_to_remove, amount)
+    await remove_item_from_grocery_list(context, user_id, item_to_remove, amount)
 
-async def remove_item_from_grocery_list(context, item_to_remove: str, amount: int):
+async def remove_item_from_grocery_list(context, user_id, item_to_remove: str, amount: int = sys.maxsize):
 
     # Database call
+    with open(f"{USER_DIRECTORY}/{user_id}.csv", "r+") as file:
+        lines = file.readlines()
+    
+        # Trim off the header
+        lines = lines[1:]
 
-    # Return and check
+        # Loop through and double check if the item is what was provided to remove
+        for row in lines:
+            # Trim off the \r\n and turn it into comma sep.
+            row = row.replace("\r", "").replace("\n", "").split(",")
+
+            # TODO: find a way to counter the invariance of doing this, tight coupling with impl.
+            grocery = Grocery.Grocery(row[0], row[1])
+
+            if (grocery.name != item_to_remove):
+                continue
+
+            if (int(grocery.amount) < int(amount)) and amount != sys.maxsize:
+                await context.send(f"""Looks like you're trying to remove {amount} more than 
+                            just what you have listed {grocery.amount}. Please try again.""")
+                return
+
+            # If it's calling this amount, it means default, delete the entire grocery item off the list
+            if (amount == sys.maxsize):
+                print(f"Removing {grocery.name} from the list...")
+                file.write("\n")
+                await context.send(f"Removed {grocery.name} from the list.")
+                return
+            
+            if (grocery.amount - amount == 0):
+                print(f"Removing {amount} from {grocery.name} will remove it entirely. Removing it from the list..")
+                file.write("\n")
+                await context.send(f"Removed {grocery.name} from the list.")
+                return
 
     await context.send(f"TODO: implement this. Removing {item_to_remove}(s) from the grocery list")
 
+@bot.command()
+async def empty(context):
+    # Prelim check 
+    user_id: int = context.author.id
+    does_user_exist: bool = check_if_user_exists(user_id)
+    if not does_user_exist:
+        await context.send("You aren't registered , silly! Make sure to run '!register' to register to the bot!")
+        return
+    
+async def empty_grocery_list(context):
+    """
+        Fully empties out the grocery list but keeps the user registered
+    """
+
+    pass
+
+def grab_api_key(file: str) -> str:
+    pass
 
 if __name__ == "__main__":
+
+    # Set the API key here
+
     # Run the bot
     bot.run(BOT_TOKEN)
