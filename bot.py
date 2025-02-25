@@ -33,25 +33,60 @@ async def list(context):
         await context.send("You aren't registered , silly! Make sure to run '!register' to register to the bot!")
         return
 
-    grocery_list: str = await get_grocery_list(user_id)
-    if grocery_list == "":
-        await context.send("Looks like you don't have anything in your grocery list... you can add them by using '!add <grocery item>'")
-        return
-
-async def get_grocery_list(user_id):
+    await get_grocery_list(context, user_id)
+    
+async def get_grocery_list(context, user_id):
     # Grab the entire CSV file
+    # TODO: refactor this, this is terrible way to do it
+    formatted_message: str = ""
+    lines: list[str] = []
     with open(f"{USER_DIRECTORY}/{user_id}.csv", newline='', encoding='utf-8') as csv_file:
-        reader = csv.reader(csv_file)
-        rows = list(reader)
+        lines = csv_file.readlines()
+        if not lines:
+            await context.send("Looks like you don't have anything in your grocery list... you can add them by using '!add <grocery item>'")
+            return
 
-    # If the rows is empty, then ignore it
-    if not rows:
-        return ""
+        csv_file.close()
 
-    return rows
+    # Trim off the header
+    headers: list[str] = lines[0].replace("\r", "").replace("\n", "").split(",")
+    lines = lines[1:]
 
-def format_to_markdown_table(row, column_widths):
-    return "| " + " | ".join(f"{str(cell).ljust(width)}" for cell, width in zip(row, column_widths)) + " |"
+    formatted_message = format_to_markdown_table(headers, lines)
+
+    await context.send(formatted_message)
+
+def format_to_markdown_table(headers: list, lines: list) -> str:
+    """
+        Format to proper markdown
+    """
+    formatted_string: str = ""
+    # Format the headers
+    for header in headers:
+        formatted_string += f"| {header} "
+    
+    # Account for spacing at the very end
+    formatted_string += "|\n"
+
+    # Add the pipe characters
+    for _ in headers:
+        formatted_string += f"| ---"
+
+    formatted_string += "|\n"
+
+    # TODO: really need to refactor this this might be the worst code I've written
+    # Format the data; assuming headers properly maps to the amount of data that is provided
+    # Terrible assumption
+    for row in lines:
+        # Trim off the \r\n and turn it into comma sep.
+        row = row.replace("\r", "").replace("\n", "").split(",")
+
+        for data in row:
+            formatted_string += f"| {data}"
+
+        formatted_string += "|\n"
+
+    return formatted_string
 
 @bot.command()
 async def register(context):
@@ -77,6 +112,9 @@ async def register_user(context, user_id: int):
     users_file_path: str = os.path.join(USER_DIRECTORY, f"{user_id}.csv")
     with open(users_file_path, 'w') as file:
         print(f"Created file for {user_id}")
+
+        # Fill out the columns
+        file.write("Grocery Item,Amount\n")
         await context.send("Added you to the Budget Bot! Welcome fella!")
     return
 
@@ -110,7 +148,6 @@ async def add_item_to_grocery_list(context, item: str, user_id, amount):
 
     with open(f"{USER_DIRECTORY}/{user_id}.csv", 'a') as file:
         # Append to the file
-        file.write("\n")
         file.write(f"{item},{amount}\n")
 
     await context.send(f"Finished adding {amount} number of {item}(s)")
