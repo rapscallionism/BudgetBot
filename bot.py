@@ -1,6 +1,7 @@
 import discord
 import os
 import csv
+from models import Grocery
 from discord.ext import commands
 
 # Intents
@@ -60,32 +61,20 @@ def format_to_markdown_table(headers: list, lines: list) -> str:
     """
         Format to proper markdown
     """
-    formatted_string: str = ""
-    # Format the headers
-    for header in headers:
-        formatted_string += f"| {header} "
+    formatted_string: str = "```"
+    formatted_string += "# Grocery List\n"
     
-    # Account for spacing at the very end
-    formatted_string += "|\n"
-
-    # Add the pipe characters
-    for _ in headers:
-        formatted_string += f"| ---"
-
-    formatted_string += "|\n"
-
-    # TODO: really need to refactor this this might be the worst code I've written
-    # Format the data; assuming headers properly maps to the amount of data that is provided
-    # Terrible assumption
     for row in lines:
         # Trim off the \r\n and turn it into comma sep.
         row = row.replace("\r", "").replace("\n", "").split(",")
 
-        for data in row:
-            formatted_string += f"| {data}"
+        # TODO: find a way to counter the invariance of doing this, tight coupling with impl.
+        grocery = Grocery.Grocery(row[0], row[1])
+        formatted_string += grocery.format_to_markdown_string()
 
-        formatted_string += "|\n"
-
+    # Markdown (?)
+    formatted_string += "```"
+    
     return formatted_string
 
 @bot.command()
