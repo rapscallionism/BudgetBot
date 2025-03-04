@@ -1,7 +1,7 @@
 import sys
 import discord
 import os
-import csv
+import pandas
 from models import Grocery
 from discord.ext import commands
 
@@ -22,60 +22,6 @@ USER_DIRECTORY: str = 'users'
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user}")
-
-@bot.command()
-async def list(context):
-    """
-        Lists out the grocery list for the user that currently exists
-    """
-    user_id: int = context.author.id
-    does_user_exist: bool = check_if_user_exists(user_id)
-
-    if not does_user_exist:
-        await context.send("You aren't registered , silly! Make sure to run '!register' to register to the bot!")
-        return
-
-    await get_grocery_list(context, user_id)
-    
-async def get_grocery_list(context, user_id):
-    # Grab the entire CSV file
-    # TODO: refactor this, this is terrible way to do it
-    formatted_message: str = ""
-    lines: list[str] = []
-    with open(f"{USER_DIRECTORY}/{user_id}.csv", newline='', encoding='utf-8') as csv_file:
-        lines = csv_file.readlines()
-        if not lines:
-            await context.send("Looks like you don't have anything in your grocery list... you can add them by using '!add <grocery item>'")
-            return
-
-        csv_file.close()
-
-    # Trim off the header
-    lines = lines[1:]
-
-    formatted_message = format_to_markdown_table(lines)
-
-    await context.send(formatted_message)
-
-def format_to_markdown_table(lines: list) -> str:
-    """
-        Format to proper markdown
-    """
-    formatted_string: str = "```"
-    formatted_string += "# Grocery List\n"
-
-    for row in lines:
-        # Trim off the \r\n and turn it into comma sep.
-        row = row.replace("\r", "").replace("\n", "").split(",")
-
-        # TODO: find a way to counter the invariance of doing this, tight coupling with impl.
-        grocery = Grocery.Grocery(row[0], row[1])
-        formatted_string += grocery.format_to_markdown_string()
-
-    # Markdown (?)
-    formatted_string += "```"
-    
-    return formatted_string
 
 @bot.command()
 async def register(context):
@@ -103,7 +49,7 @@ async def register_user(context, user_id: int):
         print(f"Created file for {user_id}")
 
         # Fill out the columns
-        file.write("Grocery Item,Amount\n")
+        file.write("Grocery_Item,Amount\n")
         await context.send("Added you to the Budget Bot! Welcome fella!")
     return
 
@@ -122,11 +68,7 @@ async def add(context, item_to_add: str, amount: int = 1):
         await context.send("Did you mean to send an amount of less than or equal to 0? Please try again.")
         return
     
-    user_id: int = context.author.id
-    does_user_exist: bool = check_if_user_exists(user_id)
-    if not does_user_exist:
-        await context.send("You aren't registered , silly! Make sure to run '!register' to register to the bot!")
-        return
+    await user_check(context)
 
     await add_item_to_grocery_list(context, item_to_add, user_id, amount)
 
@@ -152,13 +94,9 @@ async def remove(context, item_to_remove: str, amount: int = sys.maxsize):
         await context.send("Did you mean to send an amount of less than or equal to 0? Please try again.")
         return
     
-    user_id: int = context.author.id
-    does_user_exist: bool = check_if_user_exists(user_id)
-    if not does_user_exist:
-        await context.send("You aren't registered , silly! Make sure to run '!register' to register to the bot!")
-        return
+    await user_check(context)
 
-    await remove_item_from_grocery_list(context, user_id, item_to_remove, amount)
+    await remove_item_from_grocery_list(context, item_to_remove, amount)
 
 async def remove_item_from_grocery_list(context, user_id, item_to_remove: str, amount: int = sys.maxsize):
 
@@ -175,6 +113,8 @@ async def remove_item_from_grocery_list(context, user_id, item_to_remove: str, a
             row = row.replace("\r", "").replace("\n", "").split(",")
 
             # TODO: find a way to counter the invariance of doing this, tight coupling with impl.
+            # TODO: rename this variable and this structure of naming.. it looks mega terrible..
+            # Grab the data for the grocery item and its amount
             grocery = Grocery.Grocery(row[0], row[1])
 
             if (grocery.name != item_to_remove):
@@ -197,8 +137,39 @@ async def remove_item_from_grocery_list(context, user_id, item_to_remove: str, a
                 file.write("\n")
                 await context.send(f"Removed {grocery.name} from the list.")
                 return
+            
+            # At this point, it means that we should be decrementing this by however much the user has passed in
+            new_amount: int = grocery.amount - amount
+            grocery_name: str = grocery.name
 
-    await context.send(f"TODO: implement this. Removing {item_to_remove}(s) from the grocery list")
+            # Remove the current line entirely and replace it with the new amount and grocery name
+            file.write(f"{grocery_name},{new_amount}\n")
+
+    await context.send(f"TODO: Unable to find Removing {item_to_remove}(s) from the grocery list")
+
+@bot.command()
+async def list(context):
+    await user_check(context)
+    await list_items(context)
+
+async def list_items(context):
+    formatted_string: str = "```\n# Grocery list\n"
+    user_id: str = context.author.id
+    data = pandas.read_csv(f'./users/{user_id}.csv')
+
+    for row in data.itertuples(index=True, name="Row"):
+        formatted_string += f"- {row.Grocery_Item} ({row.Amount})\n"
+
+    formatted_string += "```"
+    await context.send(formatted_string)
+
+async def user_check(context):
+    user_id: int = context.author.id
+    does_user_exist: bool = check_if_user_exists(user_id)
+    if not does_user_exist:
+        await context.send("You aren't registered , silly! Make sure to run '!register' to register to the bot!")
+        return
+
 
 @bot.command()
 async def empty(context):
