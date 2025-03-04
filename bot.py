@@ -101,7 +101,21 @@ async def add_item_to_grocery_list(context, item: str, user_id, amount):
 
 # Removes the grocery item from the grocery list provided
 @bot.command()
-async def remove(context, item_to_remove: str, amount: int = sys.maxsize):
+async def remove(context, *args):
+    if not args:
+        await context.send("Please use this command with `!remove <grocery item> <amount>`")
+        return
+
+    item_to_remove: str = ""
+    amount: int = sys.maxsize
+
+    try:
+        amount = int(args[-1])
+        item_to_remove = " ".join(args[:-1])
+    except ValueError:
+        # Assume there is no number and use default values
+        item_to_remove = " ".join(args)
+    
     if item_to_remove == None:
         await context.send("Please provide an item to remove.")
         return
