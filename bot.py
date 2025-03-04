@@ -54,13 +54,27 @@ async def register_user(context, user_id: int):
     return
 
 @bot.command()
-async def add(context, item_to_add: str, amount: int = 1):
+async def add(context, *args):
     """
         Adds a grocery item to the database
         To run the command, use `!add_grocery_item <grocery_item> <optional: amount>`
     """
 
-    if item_to_add == None:
+    if not args:
+        await context.send("Please use this command with `!add <grocery item> <amount>`")
+        return
+
+    item_to_add: str = ""
+    amount: int = 1
+
+    try:
+        amount = int(args[-1])
+        item_to_add = " ".join(args[:-1])
+    except ValueError:
+        # Assume there is no number and use default values
+        item_to_add = " ".join(args)
+
+    if item_to_add == None or item_to_add == " " or item_to_add == "":
         await context.send("Please add an item to the grocery list.")
         return
 
