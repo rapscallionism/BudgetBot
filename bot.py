@@ -70,6 +70,8 @@ async def add(context, item_to_add: str, amount: int = 1):
     
     await user_check(context)
 
+    user_id: int = context.author.id
+
     await add_item_to_grocery_list(context, item_to_add, user_id, amount)
 
 # TODO: implement this with database
@@ -110,18 +112,26 @@ async def remove_item_from_grocery_list(context, item_to_remove: str, amount: in
     if (not does_item_exist):
         await context.send(f"{item_to_remove} does not exist within your grocery list.")
         return
-    
-    grocery_item_amount: int = int(data_dict[item_to_remove])
-    
-    if (grocery_item_amount < amount):
+
+    grocery_item_amount: int = int(data_dict[item_to_remove]['Amount'])
+
+    if (grocery_item_amount < amount and amount != sys.maxsize):
         await context.send(f"You requested to remove {amount} {item_to_remove}(s) from the list, but you only have {grocery_item_amount}")
         return
     
+    if (amount == sys.maxsize):
+        amount = grocery_item_amount
+        # grocery_item_amount = amount
+    
     amount_to_set: int = grocery_item_amount - amount
     if (amount_to_set == 0):
-        data = data[data[item_to_remove] != item_to_remove]
+        index_to_drop = data[((data.Grocery_Item == item_to_remove) & (data.Amount == grocery_item_amount))].index
+        data = data.drop(index_to_drop)
+        # data = data.drop(data["Grocery_Item" == item_to_remove].index)
     else:
-        data.loc[data["Grocery_Item"] == item_to_remove, "Amount"] = amount_to_set
+        row_to_update = data.loc[data['Grocery_Item'] == item_to_remove].index[0]
+        data.loc[row_to_update, 'Amount'] = amount_to_set
+        # data.loc[data["Grocery_Item"] == item_to_remove, "Amount"] = amount_to_set
 
     data.to_csv(csv_file, index=False)
     await context.send(f"Finished removing {amount} {item_to_remove}(s) from the grocery list.")
