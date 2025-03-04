@@ -98,54 +98,34 @@ async def remove(context, item_to_remove: str, amount: int = sys.maxsize):
 
     await remove_item_from_grocery_list(context, item_to_remove, amount)
 
-async def remove_item_from_grocery_list(context, user_id, item_to_remove: str, amount: int = sys.maxsize):
+async def remove_item_from_grocery_list(context, item_to_remove: str, amount: int = sys.maxsize):
+    user_id: str = context.author.id
+    csv_file: str = f'./users/{user_id}.csv'
+    data = pandas.read_csv(csv_file)
 
-    # Database call
-    with open(f"{USER_DIRECTORY}/{user_id}.csv", "r+") as file:
-        lines = file.readlines()
+    # Check if the item exists within the dataframe; if not, return message
+    data_dict: dict = data.set_index("Grocery_Item").to_dict(orient="index")
+    does_item_exist: bool = data_dict[item_to_remove] != None
+
+    if (not does_item_exist):
+        await context.send(f"{item_to_remove} does not exist within your grocery list.")
+        return
     
-        # Trim off the header
-        lines = lines[1:]
+    grocery_item_amount: int = int(data_dict[item_to_remove])
+    
+    if (grocery_item_amount < amount):
+        await context.send(f"You requested to remove {amount} {item_to_remove}(s) from the list, but you only have {grocery_item_amount}")
+        return
+    
+    amount_to_set: int = grocery_item_amount - amount
+    if (amount_to_set == 0):
+        data = data[data[item_to_remove] != item_to_remove]
+    else:
+        data.loc[data["Grocery_Item"] == item_to_remove, "Amount"] = amount_to_set
 
-        # Loop through and double check if the item is what was provided to remove
-        for row in lines:
-            # Trim off the \r\n and turn it into comma sep.
-            row = row.replace("\r", "").replace("\n", "").split(",")
-
-            # TODO: find a way to counter the invariance of doing this, tight coupling with impl.
-            # TODO: rename this variable and this structure of naming.. it looks mega terrible..
-            # Grab the data for the grocery item and its amount
-            grocery = Grocery.Grocery(row[0], row[1])
-
-            if (grocery.name != item_to_remove):
-                continue
-
-            if (int(grocery.amount) < int(amount)) and amount != sys.maxsize:
-                await context.send(f"""Looks like you're trying to remove {amount} more than 
-                            just what you have listed {grocery.amount}. Please try again.""")
-                return
-
-            # If it's calling this amount, it means default, delete the entire grocery item off the list
-            if (amount == sys.maxsize):
-                print(f"Removing {grocery.name} from the list...")
-                file.write("\n")
-                await context.send(f"Removed {grocery.name} from the list.")
-                return
-            
-            if (grocery.amount - amount == 0):
-                print(f"Removing {amount} from {grocery.name} will remove it entirely. Removing it from the list..")
-                file.write("\n")
-                await context.send(f"Removed {grocery.name} from the list.")
-                return
-            
-            # At this point, it means that we should be decrementing this by however much the user has passed in
-            new_amount: int = grocery.amount - amount
-            grocery_name: str = grocery.name
-
-            # Remove the current line entirely and replace it with the new amount and grocery name
-            file.write(f"{grocery_name},{new_amount}\n")
-
-    await context.send(f"TODO: Unable to find Removing {item_to_remove}(s) from the grocery list")
+    data.to_csv(csv_file, index=False)
+    await context.send(f"Finished removing {amount} {item_to_remove}(s) from the grocery list.")
+    return
 
 @bot.command()
 async def list(context):
