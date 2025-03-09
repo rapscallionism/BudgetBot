@@ -19,6 +19,30 @@ BOT_TOKEN = 'MTMzMzg5MzcxOTExOTYzMDM4Nw.Ghp_ZI.0DO5yKLkXji1KjRIYce-UKV_eD1C3KH-S
 # Directory to save the user data
 USER_DIRECTORY: str = 'users'
 
+def create_check(args) -> bool:
+    pass
+
+def set_check(args) -> bool:
+    pass
+
+def edit_check(args) -> bool:
+    pass
+
+def spent_check(args) -> bool:
+    pass
+
+def total_check(args) -> bool:
+    pass
+
+# Stores the proper procedures and maps the necessary arguments
+BUDGET_CHECK_MAPPER: dict = {
+    "create" : create_check,
+    "set": set_check,
+    "edit": edit_check,
+    "spent": spent_check,
+    "total": total_check
+}
+
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user}")
@@ -188,7 +212,6 @@ async def user_check(context):
         await context.send("You aren't registered , silly! Make sure to run '!register' to register to the bot!")
         return
 
-
 @bot.command()
 async def empty(context):
     # Prelim check 
@@ -207,6 +230,72 @@ async def empty_grocery_list(context):
 
 def grab_api_key(file: str) -> str:
     pass
+
+async def create_budget(context, budget_name: str):
+    pass
+
+async def set_budget(context, name: str, amount: int):
+    pass
+
+async def edit_budget(context, name: str, amount: int):
+    pass
+
+async def spent_budget(context, name: str, amount: int):
+    pass
+
+async def total_budget(context, name: str = None):
+    pass
+
+BUDGET_METHOD_MAPPER: dict = {
+    "create" : create_budget,
+    "set": set_budget,
+    "edit": edit_budget,
+    "spent": spent_budget,
+    "total": total_budget
+}
+
+@bot.command()
+async def budget(context, *args):
+    # Map the context of what we want to do for the budget
+    # /budget create <budget-category> -> Creates a budget category for the user to add to if it does not already exist; if it does exist, will notify as a message
+    # /budget set <budget-category> <amount> -> If the budget category exists, will set a budget limit for that category according to the limit that is passed in
+    # /budget edit <budget-category> <amount> -> If the budget category exists and an amount exists, will edit the budget category limit to the amount passed in if the    
+    # /budget spent <budget-category> <amount> -> Adds a total amount to the budget for that category; e.g. if I say /add bills 900, it'll add $900 to the bills category; if
+    #    the user adds an expense that goes over the budget-category-total, will warn the user
+    # /budget total <optional: budget-category> -> Does a running total of that budget category OR does a total breakdown of the entire budget; will display a fractional message
+    #    of what the running total is; e.g. something akin to Groceries: 150/500
+    
+    # Check if a user
+    if (not user_check(context.author.id)):
+        await context.send("You aren't registered , silly! Make sure to run '!register' to register to the bot!")
+        return
+
+    # Parse through the context to find out what method is being called
+    # TODO: figure out what kind of message I want to return to the user here to indicate what is available to use
+    if not args:
+        await context.send("Please use this command with `!budget <budget method>")
+        return
+
+    method: str = ""
+    method_check = None
+
+    # Parse through the args passed in:
+    try:
+        method = str(args[1])
+        method_check = BUDGET_CHECK_MAPPER[method]
+        is_valid_call: bool = method_check(args)
+        if (not is_valid_call):
+            # TODO: figure out what message to send to the user
+            raise ValueError("Method Check did not resove properly.")
+    except ValueError as error:
+        print(str(error))
+        # TODO: figure out what message to send to the user
+        await context.send("Something went wrong! You may have used the command incorrectly!")
+        return
+
+    # Call the associated method
+    budget_method = BUDGET_METHOD_MAPPER[method]
+    budget_method(args)
 
 if __name__ == "__main__":
 
