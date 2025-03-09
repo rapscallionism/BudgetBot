@@ -17,7 +17,8 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 BOT_TOKEN = 'MTMzMzg5MzcxOTExOTYzMDM4Nw.Ghp_ZI.0DO5yKLkXji1KjRIYce-UKV_eD1C3KH-SfroUY'
 
 # Directory to save the user data
-USER_DIRECTORY: str = 'users'
+USER_DIRECTORY_GROCERY: str = 'users-grocery'
+USER_DIRECTORY_BUDGET: str = 'users-budget'
 
 def create_check(args) -> bool:
     pass
@@ -63,12 +64,12 @@ async def register(context):
     
 def check_if_user_exists(user_id: int):
     # Check if the file path exists within the user directory
-    user_exists: bool = os.path.isfile(f"{USER_DIRECTORY}/{user_id}.csv")
+    user_exists: bool = os.path.isfile(f"{USER_DIRECTORY_GROCERY}/{user_id}.csv")
     return user_exists
 
 async def register_user(context, user_id: int):
     """Registers user into the proper directory"""
-    users_file_path: str = os.path.join(USER_DIRECTORY, f"{user_id}.csv")
+    users_file_path: str = os.path.join(USER_DIRECTORY_GROCERY, f"{user_id}.csv")
     with open(users_file_path, 'w') as file:
         print(f"Created file for {user_id}")
 
@@ -117,7 +118,7 @@ async def add_item_to_grocery_list(context, item: str, user_id, amount):
     # Database call
     # TODO: refactor this for PSQL call
 
-    with open(f"{USER_DIRECTORY}/{user_id}.csv", 'a') as file:
+    with open(f"{USER_DIRECTORY_GROCERY}/{user_id}.csv", 'a') as file:
         # Append to the file
         file.write(f"{item},{amount}\n")
 
@@ -154,7 +155,7 @@ async def remove(context, *args):
 
 async def remove_item_from_grocery_list(context, item_to_remove: str, amount: int = sys.maxsize):
     user_id: str = context.author.id
-    csv_file: str = f'./users/{user_id}.csv'
+    csv_file: str = f'./{USER_DIRECTORY_GROCERY}/{user_id}.csv'
     data = pandas.read_csv(csv_file)
 
     # Check if the item exists within the dataframe; if not, return message
@@ -197,7 +198,7 @@ async def list(context):
 async def list_items(context):
     formatted_string: str = "```\n# Grocery list\n"
     user_id: str = context.author.id
-    data = pandas.read_csv(f'./users/{user_id}.csv')
+    data = pandas.read_csv(f'./{USER_DIRECTORY_GROCERY}/{user_id}.csv')
 
     for row in data.itertuples(index=True, name="Row"):
         formatted_string += f"- {row.Grocery_Item} ({row.Amount})\n"
@@ -231,22 +232,49 @@ async def empty_grocery_list(context):
 def grab_api_key(file: str) -> str:
     pass
 
-async def create_budget(context, budget_name: str):
+async def user_check_budget(context):
+    user_id: int = context.author.id
+    does_user_exist: bool = os.path.isfile(f"{USER_DIRECTORY_BUDGET}/{user_id}.csv")
+    if not does_user_exist:
+        await context.send("You aren't registered , silly! Make sure to run '!budget register' to register to the bot!")
+        return
+
+async def register_user_budget(context, *args):
+    # Check if the user exists
+    user_check_budget(context)
+
+    # Add user to the proper area
+    user_id: int = context.author.id
+    users_file_path: str = os.path.join(USER_DIRECTORY_BUDGET, f"{user_id}.csv")
+    with open(users_file_path, 'w') as file:
+        print(f"Created file for {user_id}")
+
+        # Fill out the columns
+        # file.write("Grocery_Item,Amount\n")
+        await context.send("Added you to the Budget Bot! Welcome fella!")
+    return
+
+async def create_budget(context, *args):
     pass
 
-async def set_budget(context, name: str, amount: int):
-    pass
+async def set_budget(context, *args):
+    print("NOT IMPLEMENTED YET")
+    return
 
-async def edit_budget(context, name: str, amount: int):
-    pass
+async def edit_budget(context, *args):
+    print("NOT IMPLEMENTED YET")
+    return
 
-async def spent_budget(context, name: str, amount: int):
-    pass
+async def spent_budget(context, *args):
+    print("NOT IMPLEMENTED YET")
+    return
 
-async def total_budget(context, name: str = None):
-    pass
+async def total_budget(context, *args):
+    print("NOT IMPLEMENTED YET")
+    return
 
 BUDGET_METHOD_MAPPER: dict = {
+    "register": register_user_budget,
     "create" : create_budget,
     "set": set_budget,
     "edit": edit_budget,
@@ -257,6 +285,7 @@ BUDGET_METHOD_MAPPER: dict = {
 @bot.command()
 async def budget(context, *args):
     # Map the context of what we want to do for the budget
+    # /budget register -> Creates a budget entry within the database for this specific user id
     # /budget create <budget-category> -> Creates a budget category for the user to add to if it does not already exist; if it does exist, will notify as a message
     # /budget set <budget-category> <amount> -> If the budget category exists, will set a budget limit for that category according to the limit that is passed in
     # /budget edit <budget-category> <amount> -> If the budget category exists and an amount exists, will edit the budget category limit to the amount passed in if the    
@@ -295,7 +324,7 @@ async def budget(context, *args):
 
     # Call the associated method
     budget_method = BUDGET_METHOD_MAPPER[method]
-    budget_method(args)
+    budget_method(context, args)
 
 if __name__ == "__main__":
 
