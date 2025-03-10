@@ -301,7 +301,7 @@ async def budget(context, *args):
     # /budget clear -> Will clear the user's entire budget, but before doing so, will print out the entire budget history of the user
     
     # Check if a user
-    if (not user_check(context.author.id)):
+    if (not await user_check(int(context.author.id))):
         await context.send("You aren't registered , silly! Make sure to run '!register' to register to the bot!")
         return
 
@@ -316,8 +316,8 @@ async def budget(context, *args):
 
     # Parse through the args passed in:
     try:
-        method = str(args[1])
-        method_check = BUDGET_CHECK_MAPPER[method]
+        method = str(args[0])
+        method_check = BUDGET_METHOD_MAPPER[method]
         is_valid_call: bool = method_check(args)
         if (not is_valid_call):
             # TODO: figure out what message to send to the user
