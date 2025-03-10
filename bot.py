@@ -250,7 +250,7 @@ async def register_user_budget(context, *args):
         print(f"Created file for {user_id}")
 
         # Fill out the columns
-        # file.write("Grocery_Item,Amount\n")
+        file.write("Category,Budget,Total,Spent\n")
         await context.send("Added you to the Budget Bot! Welcome fella!")
     return
 
@@ -273,13 +273,18 @@ async def total_budget(context, *args):
     print("NOT IMPLEMENTED YET")
     return
 
+async def clear_budget(context, *args):
+    print("NOT IMPLEMENTED YET")
+    return
+
 BUDGET_METHOD_MAPPER: dict = {
     "register": register_user_budget,
     "create" : create_budget,
     "set": set_budget,
     "edit": edit_budget,
     "spent": spent_budget,
-    "total": total_budget
+    "total": total_budget,
+    "clear": clear_budget
 }
 
 @bot.command()
@@ -293,6 +298,7 @@ async def budget(context, *args):
     #    the user adds an expense that goes over the budget-category-total, will warn the user
     # /budget total <optional: budget-category> -> Does a running total of that budget category OR does a total breakdown of the entire budget; will display a fractional message
     #    of what the running total is; e.g. something akin to Groceries: 150/500
+    # /budget clear -> Will clear the user's entire budget, but before doing so, will print out the entire budget history of the user
     
     # Check if a user
     if (not user_check(context.author.id)):
