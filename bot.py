@@ -214,7 +214,7 @@ async def user_check(context):
         return
 
 @bot.command()
-async def empty(context):
+async def clear(context):
     # Prelim check 
     user_id: int = context.author.id
     does_user_exist: bool = check_if_user_exists(user_id)
