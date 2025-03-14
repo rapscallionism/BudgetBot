@@ -222,7 +222,7 @@ async def clear(context):
         await context.send("You aren't registered , silly! Make sure to run '!register' to register to the bot!")
         return
     
-async def empty_grocery_list(context):
+async def clear_grocery_list(context):
     """
         Fully empties out the grocery list but keeps the user registered
     """
