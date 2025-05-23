@@ -4,6 +4,7 @@ import os
 import pandas
 from models import Grocery
 from discord.ext import commands
+from app_secrets import SECRETS
 
 # Intents
 intents = discord.Intents.default()
@@ -14,7 +15,7 @@ intents.message_content = True  # Required for message content
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # Bot token
-BOT_TOKEN = ***REMOVED***
+BOT_TOKEN = SECRETS.BOT_TOKEN   
 
 # Directory to save the user data
 USER_DIRECTORY_GROCERY: str = 'users-grocery'
